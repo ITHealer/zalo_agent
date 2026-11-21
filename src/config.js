@@ -88,7 +88,7 @@ export const config = {
   openwebui: {
     baseUrl: (str('OPENWEBUI_URL', 'http://localhost:8080') || '').replace(/\/+$/, ''),
     apiKey: str('OPENWEBUI_API_KEY', ''),
-    model: str('OPENWEBUI_MODEL', ''),
+    model: str('OPENWEBUI_MODEL', str('OPENWEBUI_MODEL_ID', '')),
     // chat (mặc định, chạy tool phía server) | completions (OpenAI-compatible đơn giản)
     mode: str('OPENWEBUI_MODE', 'chat'),
     // Bỏ trống = tự lấy toolIds đã gắn trên agent. "none" = không truyền tool nào.
@@ -109,7 +109,7 @@ export function assertConfig(role) {
   const errs = [];
   if (role !== 'listener') {
     if (!config.openwebui.apiKey) errs.push('OPENWEBUI_API_KEY');
-    if (!config.openwebui.model) errs.push('OPENWEBUI_MODEL');
+    if (!config.openwebui.model) errs.push('OPENWEBUI_MODEL (hoặc OPENWEBUI_MODEL_ID)');
   }
   if (errs.length) throw new Error(`Thiếu biến môi trường: ${errs.join(', ')}`);
   if (!['chat', 'completions'].includes(config.openwebui.mode)) {
