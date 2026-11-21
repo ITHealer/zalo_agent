@@ -1,0 +1,22 @@
+{
+  "name": "zalo-gateway",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Kết nối Zalo cá nhân: lưu tin nhóm, chuyển yêu cầu trả lời cho agent-service, gửi câu trả lời về Zalo",
+  "type": "module",
+  "main": "src/index.js",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node --test --test-force-exit test/message-normalizer.test.js test/zalo-connection.test.js",
+    "test:integration": "node --test --test-force-exit test/integration.test.js"
+  },
+  "dependencies": {
+    "dotenv": "16.4.7",
+    "ioredis": "5.4.2",
+    "pg": "8.13.1",
+    "pino": "9.6.0",
+    "ws": "8.23.0",
+    "zca-js": "2.3.0"
+  }
+}

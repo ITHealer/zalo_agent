@@ -1,10 +1,11 @@
+# Chạy toàn bộ hệ thống:  docker compose up -d --build
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
       POSTGRES_USER: zalo
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zalo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Cần đặt POSTGRES_PASSWORD trong .env}
       POSTGRES_DB: zalo_agent
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -16,7 +17,7 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    # AOF: không mất hàng đợi khi Redis khởi động lại
+    # AOF: không mất stream khi Redis khởi động lại
     command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
     volumes:
       - redisdata:/data
@@ -25,22 +26,44 @@ services:
       interval: 5s
       retries: 10
 
-  zalo-agent:
-    build: .
-    restart: unless-stopped
+  # Chạy migration 1 lần rồi thoát; 2 service còn lại chờ bước này xong
+  migrate:
+    build: ./agent-service
     env_file: .env
-    environment:
-      DATABASE_URL: postgres://zalo:${POSTGRES_PASSWORD:-zalo}@postgres:5432/zalo_agent
+    environment: &shared-connections
+      DATABASE_URL: postgres://zalo:${POSTGRES_PASSWORD}@postgres:5432/zalo_agent
       REDIS_URL: redis://redis:6379
-      DATA_DIR: /app/data
-    ports:
-      # Chỉ bind localhost: /qr là quyền đăng nhập tài khoản bot
-      - "127.0.0.1:3000:3000"
-    volumes:
-      - ./data:/app/data
+    command: ["python", "-m", "app.cli.migrate"]
     depends_on:
       postgres:
         condition: service_healthy
+
+  agent-service:
+    build: ./agent-service
+    restart: unless-stopped
+    env_file: .env
+    environment: *shared-connections
+    ports:
+      # Chỉ mở trên localhost của server: API quản trị + trang QR đăng nhập
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  zalo-gateway:
+    build: ./zalo-gateway
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      <<: *shared-connections
+      DATA_DIR: /app/data
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
 

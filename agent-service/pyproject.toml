@@ -1,0 +1,35 @@
+[project]
+name = "agent-service"
+version = "0.2.0"
+description = "Nhận yêu cầu trả lời từ zalo-gateway, hỏi agent trên OpenWebUI và ghi câu trả lời vào outbox"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi==0.165.0",
+    "uvicorn[standard]==0.54.0",
+    "pydantic==2.14.4",
+    "pydantic-settings==2.16.3",
+    "asyncpg==0.32.0",
+    "redis==8.1.0",
+    "httpx==0.28.1",
+    "tzdata",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.2.0",
+    "pytest-asyncio==1.5.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+markers = ["integration: cần Postgres, Redis và OpenWebUI thật (chạy với E2E=1)"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
