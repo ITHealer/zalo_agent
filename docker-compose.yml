@@ -1,0 +1,49 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zalo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-zalo}
+      POSTGRES_DB: zalo_agent
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zalo -d zalo_agent"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # AOF: không mất hàng đợi khi Redis khởi động lại
+    command: ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+  zalo-agent:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://zalo:${POSTGRES_PASSWORD:-zalo}@postgres:5432/zalo_agent
+      REDIS_URL: redis://redis:6379
+      DATA_DIR: /app/data
+    ports:
+      # Chỉ bind localhost: /qr là quyền đăng nhập tài khoản bot
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  redisdata:
